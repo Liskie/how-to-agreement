@@ -145,7 +145,7 @@ We may translate this annotation of syntax tree into:
 ```python
 [
   ['B-S',  'I-S',  'I-S' ], # S
-  ['B-NP', 'O',    'N-NP'], # NP
+  ['B-NP', 'O',    'B-NP'], # NP
   ['O',    'B-VP', 'I-VP'], # VP
   ['B-N',  'O',    'O'   ], # N
   ['O',    'B-V',  'O'   ], # VP
