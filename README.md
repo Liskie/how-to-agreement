@@ -69,6 +69,91 @@ Now, just call the function and get the fleiss' kappa score calculated.
 fleiss_kappa(worker_tags) # 0.3999999999999999
 ```
 
+### Different Agreements
+
+- Cohen's Kappa: This kappa is initially designed for two annotators. For multiple (>= 3) annotators, it is pairwise calculated and averaged.
+    ```python
+    AnnotationTask.kappa()
+    ```
+- Fleiss' Kappa: By default, you should use this kappa for the multi-annotator situation.
+    ```python
+    AnnotationTask.multi_kappa()
+    ```
+- Krippendorff's Alpha: This is another implementation of multi-annotator agreement. The value of this agreement is very close to Fleiss' Kappa.
+    ```python
+    AnnotationTask.alpha()
+    ```
+
+### How to deal with nested spans (e.g. trees)?
+
+We provide one possible solution:
+1. Extract all subsequences from the original sequence.
+2. Concatenate the subsequences into a long sequence.
+3. Copy annotation spans to corresponding subsequences in the long sequence.
+4. Calculate agreement with long annotation sequences.
+
+Following is an example:
+
+The original sequence is 
+```python
+['I', 'love', 'you']
+```
+
+We extract all subsequences and concatenate them into 
+```python
+[
+  'I', 'love', 'you', # length = 3 
+  'I', 'love',        # length = 2
+  'love', 'you',      # length = 2
+  'I',                # length = 1
+  'love',             # length = 1
+  'you'               # length = 1
+]
+```
+
+An annotator gives a syntax tree annotation like 
+
+!['[S [NP I] [VP [V love] [NP you]]]'](img/syntax_tree_1.png "Syntax Tree")
+
+We can translate it into nested spans:
+```python
+[(0, 3, 'S'), (0, 1, 'NP'), (1, 3, 'VP'), (1, 2, 'V'), (2, 3, 'NP')]
+```
+
+Then overwrite the concatenated sequence with these spans:
+```python
+[
+  'B-S', 'I-S', 'I-S', # ['I', 'love', 'you'] is 'S'
+  'O', 'O',            #        ['I', 'love'] is not annotated 
+  'B-VP', 'I-VP',      #      ['love', 'you'] is 'VP'
+  'B-NP',              #                ['I'] is 'NP'
+  'B-V',               #             ['love'] is 'V'
+  'B-NP'               #              ['you'] is 'NP'
+]
+# We use BIO tags here.
+```
+
+Now, we can calculate Fleiss' Kappa of such concatenated annotation sequences from different annotators.
+
+### What if nested spans completely overlap?
+
+Consider the following syntax tree:
+
+!['[S [NP [N I]] [VP [V love] [NP you]]]'](img/syntax_tree_2.png "Syntax Tree")
+
+We may translate this annotation of syntax tree into:
+```python
+[
+  ['B-S',  'I-S',  'I-S' ], # S
+  ['B-NP', 'O',    'N-NP'], # NP
+  ['O',    'B-VP', 'I-VP'], # VP
+  ['B-N',  'O',    'O'   ], # N
+  ['O',    'B-V',  'O'   ], # VP
+# ['I',    'love', 'you' ]
+]
+```
+Then Fleiss' Kappa can be calculated.
+
 ## Not enough for your experiments?
 
 You can refer to the [official document](https://www.nltk.org/api/nltk.metrics.agreement.html) of the ```nltk.mertics.agreement``` module.
